@@ -1,35 +1,75 @@
 import random
 import argparse
 
-def generate_frame(length, seed, width, frame):
-    # rng = random.Random((seed + frame))
-    rng = random.Random(f"{seed}:{frame}")
+VIEW_DEPTH = 10
+
+def generate_world(length, seed, width):
+    rng = random.Random(seed)
 
     max_width = length * width
-    inner_width = max(1, int(max_width * 0.5))
+    inner_width = max(10, int(max_width * 0.5))
 
-    line = [" "] * inner_width
-
-    num_objects = rng.randint(0, 2)
     objects = ["S", "D"]
 
-    used = set()
+    world_objects = {}
 
-    for _ in range(num_objects):
+    # pregenerated persistent objects
+    # for obj_id in range(rng.randint(2, 5)):
+    for obj_id in range(rng.randint(10, 25)):
         obj = rng.choice(objects)
+        pos_x = rng.randrange(inner_width)
+        pos_z = rng.randrange(0, 100)  # depth in corridor
+        # pos_z = rng.randrange(0, 50)
 
-        pos = rng.randrange(inner_width)
-        while pos in used:
-            pos = rng.randrange(inner_width)
+        world_objects[obj_id] = {
+            "type": obj,
+            "x": pos_x,
+            "z": pos_z
+        }
+    
+    return {
+        "width": inner_width,
+        "objects": world_objects
+    }
 
-        used.add(pos)
-        line[pos] = obj
+def render_frame(world, frame):
+    line = [" "] * world["width"]
+
+    camera_z = frame
+
+    for obj in world["objects"].values():
+        distance = obj["z"] - camera_z
+
+        if distance < 0:
+            continue  # already passed
+
+        if distance > 15:
+            continue  # too far to perceive
+
+        x = obj["x"]
+
+        # clamp x safely
+        if 0 <= x < len(line):
+            line[x] = symbol_for(obj["type"], distance)
 
     return "|" + "".join(line) + "|"
 
+
+def symbol_for(obj_type, distance):
+    if distance <= 2:
+        return obj_type.upper()   # near: S, D
+    elif distance <= 5:
+        return obj_type.lower()   # mid: s, d
+    elif distance <= 10:
+        return "."
+    else:
+        return " "
+
 def generate_sequence(length, seed, width, start_frame, count):
+    world = generate_world(length, seed, width)
+
     return [
-        generate_frame(length, seed, width, frame)
+        render_frame(world, frame)
         for frame in range(start_frame, start_frame + count)
     ]
 
