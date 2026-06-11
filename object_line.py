@@ -1,8 +1,8 @@
 import random
 import argparse
 
-def generate_line(length, seed, width):
-    rng = random.Random(seed)
+def generate_line(length, seed, width, frame):
+    rng = random.Random(seed + frame)
 
     max_width = length * width
     depth = 0.5  # v0: no real frame progression yet
@@ -18,9 +18,16 @@ def generate_line(length, seed, width):
 
     objects = ["S", "D"]
 
+    used_positions = set()
+
     for _ in range(num_objects):
         obj = rng.choice(objects)
         pos = rng.randint(0, inner_width - 1)
+
+        while pos in used_positions and len(used_positions) < inner_width:
+            pos = rng.randint(0, inner_width - 1)
+        
+        used_positions.add(pos)
         line[pos] = obj
 
     middle = "".join(line)
@@ -32,9 +39,10 @@ def main():
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--length", type=int, default=20)
     parser.add_argument("--width", type=int, default=2)
+    parser.add_argument("--frame", type=int, default=0)
     args = parser.parse_args()
 
-    print(generate_line(args.length, args.seed, args.width))
+    print(generate_line(args.length, args.seed, args.width, args.frame))
 
 if __name__ == "__main__":
     main()
